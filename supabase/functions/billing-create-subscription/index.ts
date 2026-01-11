@@ -37,6 +37,13 @@ serve(async (req) => {
 
   const authHeader = req.headers.get('authorization') || '';
   const token = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7) : '';
+  console.log('billing-create-subscription: request', {
+    hasAuth: Boolean(token),
+    hasAnonKey: Boolean(supabaseAnonKey),
+    hasServiceRoleKey: Boolean(serviceRoleKey),
+    hasRazorpayKeyId: Boolean(rzpKeyId),
+    hasRazorpayPlanId: Boolean(rzpPlanId)
+  });
   if (!token) return json({ error: 'Missing authorization token.' }, 401);
 
   const supabaseUserClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -45,6 +52,7 @@ serve(async (req) => {
 
   const { data: userData, error: userErr } = await supabaseUserClient.auth.getUser(token);
   if (userErr || !userData?.user?.id) {
+    console.log('billing-create-subscription: invalid session', { message: userErr?.message || 'no_user' });
     return json({ error: userErr?.message || 'Invalid session' }, 401);
   }
 

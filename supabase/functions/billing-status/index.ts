@@ -39,6 +39,10 @@ serve(async (req) => {
 
   const authHeader = req.headers.get('authorization') || '';
   const token = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7) : '';
+  console.log('billing-status: request', {
+    hasAuth: Boolean(token),
+    hasServiceRoleKey: Boolean(serviceRoleKey)
+  });
   if (!token) {
     return new Response(JSON.stringify({ error: 'Missing authorization token.' }), {
       status: 401,
@@ -52,6 +56,7 @@ serve(async (req) => {
 
   const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
   if (userErr || !userData?.user?.id) {
+    console.log('billing-status: invalid session', { message: userErr?.message || 'no_user' });
     return new Response(JSON.stringify({ error: userErr?.message || 'Invalid session' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
