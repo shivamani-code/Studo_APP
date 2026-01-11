@@ -11,6 +11,34 @@ type BillingStatus = {
   razorpaySubscriptionId: string | null;
 };
 
+const getEdgeFunctionErrorMessage = async (error: any): Promise<string> => {
+  try {
+    const res: Response | undefined = error?.context;
+    if (!res) return String(error?.message || 'Edge Function error');
+
+    const status = res.status;
+    try {
+      const json = await res.clone().json();
+      const raw = (json as any)?.error;
+      const msg =
+        typeof raw === 'string'
+          ? raw
+          : raw && typeof raw === 'object' && (raw as any).message
+            ? String((raw as any).message)
+            : raw != null
+              ? JSON.stringify(raw)
+              : '';
+      return msg ? `HTTP ${status}: ${msg}` : `HTTP ${status}`;
+    } catch {
+      const text = await res.clone().text().catch(() => '');
+      const msg = String(text || '').trim();
+      return msg ? `HTTP ${status}: ${msg}` : `HTTP ${status}`;
+    }
+  } catch {
+    return 'Edge Function error';
+  }
+};
+
 export class BillingService {
   static async getStatus(): Promise<BillingStatus> {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -34,11 +62,12 @@ export class BillingService {
     });
 
     if (error) {
+      const msg = await getEdgeFunctionErrorMessage(error);
       return {
         ok: false,
         accessAllowed: false,
         isPaid: false,
-        status: error.message,
+        status: msg,
         trialEndsAt: null,
         trialHoursLeft: null,
         currentPeriodEnd: null,
@@ -60,8 +89,7 @@ export class BillingService {
     });
 
     if (error) {
-      const anyErr = error as any;
-      const msg = anyErr?.context?.statusText || error.message;
+      const msg = await getEdgeFunctionErrorMessage(error);
       return { ok: false, error: msg };
     }
 
