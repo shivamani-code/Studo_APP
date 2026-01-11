@@ -61,6 +61,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
     try {
       setBillingLoading(true);
       const s = await BillingService.getStatus();
+      if (s?.ok === false) {
+        setBillingAccessAllowed(true);
+        setTrialHoursLeft(null);
+        setBillingStatus('BILLING_UNAVAILABLE');
+        return;
+      }
       setBillingAccessAllowed(Boolean(s?.accessAllowed));
       setTrialHoursLeft(typeof s?.trialHoursLeft === 'number' ? s.trialHoursLeft : null);
       setBillingStatus(String(s?.status || ''));
