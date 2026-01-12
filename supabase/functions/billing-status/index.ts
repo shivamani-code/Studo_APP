@@ -28,9 +28,10 @@ serve(async (req) => {
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey = Deno.env.get('ANON_KEY') || Deno.env.get('SUPABASE_ANON_KEY');
   const serviceRoleKey = Deno.env.get('SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-  if (!supabaseUrl || !serviceRoleKey) {
+  if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
     return new Response(JSON.stringify({ error: 'Server is not configured.' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -50,11 +51,11 @@ serve(async (req) => {
     });
   }
 
-  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+  const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: `Bearer ${token}` } }
   });
 
-  const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
+  const { data: userData, error: userErr } = await supabaseAuth.auth.getUser(token);
   if (userErr || !userData?.user?.id) {
     console.log('billing-status: invalid session', { message: userErr?.message || 'no_user' });
     return new Response(JSON.stringify({ error: userErr?.message || 'Invalid session' }), {
@@ -64,6 +65,8 @@ serve(async (req) => {
   }
 
   const userId = userData.user.id;
+
+  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
   const { data, error } = await supabaseAdmin
     .from('user_billing')
