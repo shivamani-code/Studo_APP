@@ -1,6 +1,18 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.0';
 
+// Helper to decode JWT payload for debugging
+function decodeJwtPayload(token: string) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1]));
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
 const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -37,14 +49,25 @@ serve(async (req) => {
 
   const authHeader = req.headers.get('authorization') || '';
   const token = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7) : '';
+  const jwtPayload = token ? decodeJwtPayload(token) : null;
   console.log('billing-create-subscription: request', {
     hasAuth: Boolean(token),
     hasAnonKey: Boolean(supabaseAnonKey),
     hasServiceRoleKey: Boolean(serviceRoleKey),
     hasRazorpayKeyId: Boolean(rzpKeyId),
-    hasRazorpayPlanId: Boolean(rzpPlanId)
+    hasRazorpayPlanId: Boolean(rzpPlanId),
+    jwtHasSub: Boolean(jwtPayload && (jwtPayload as any)?.sub),
+    jwtRole: jwtPayload ? String((jwtPayload as any)?.role || '') : ''
   });
-  if (!token) return json({ error: 'Missing authorization token.' }, 401);
+  if (!token) {
+    return json({ error: 'Missing authorization token.' }, 401);
+  }
+
+  if (!jwtPayload || !(jwtPayload as any)?.sub) {
+    return json({
+      error: `Invalid authorization token: missing sub claim (role=${String((jwtPayload as any)?.role || '')}). Please login again and ensure Authorization uses the user's access_token, not the anon key.`
+    }, 401);
+  }
 
   const supabaseUserClient = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: `Bearer ${token}` } }
