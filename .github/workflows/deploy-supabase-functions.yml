@@ -24,26 +24,26 @@ jobs:
           version: latest
 
       - name: Deploy billing-status
-        run: supabase functions deploy billing-status --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: supabase functions deploy billing-status --no-verify-jwt --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Deploy contact-submit
-        run: supabase functions deploy contact-submit --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: supabase functions deploy contact-submit --no-verify-jwt --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Deploy billing-create-subscription
-        run: supabase functions deploy billing-create-subscription --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: supabase functions deploy billing-create-subscription --no-verify-jwt --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Deploy ai-attendance-advice
-        run: supabase functions deploy ai-attendance-advice --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: supabase functions deploy ai-attendance-advice --no-verify-jwt --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Deploy razorpay-webhook
-        run: supabase functions deploy razorpay-webhook --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: supabase functions deploy razorpay-webhook --no-verify-jwt --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
