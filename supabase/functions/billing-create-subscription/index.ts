@@ -6,8 +6,7 @@ function decodeJwtPayload(token: string) {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
-    const payload = JSON.parse(atob(parts[1]));
-    return payload;
+    return JSON.parse(atob(parts[1]));
   } catch {
     return null;
   }
@@ -26,6 +25,17 @@ const basicAuth = (keyId: string, keySecret: string) => {
   const raw = `${keyId}:${keySecret}`;
   return `Basic ${btoa(raw)}`;
 };
+
+async function razorpayGet(path: string, keyId: string, keySecret: string) {
+  const res = await fetch(`https://api.razorpay.com${path}`, {
+    method: 'GET',
+    headers: {
+      Authorization: basicAuth(keyId, keySecret)
+    }
+  });
+  const text = await res.text();
+  return { ok: res.ok, status: res.status, statusText: res.statusText, text };
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -50,15 +60,6 @@ serve(async (req) => {
   const authHeader = req.headers.get('authorization') || '';
   const token = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7) : '';
   const jwtPayload = token ? decodeJwtPayload(token) : null;
-  console.log('billing-create-subscription: request', {
-    hasAuth: Boolean(token),
-    hasAnonKey: Boolean(supabaseAnonKey),
-    hasServiceRoleKey: Boolean(serviceRoleKey),
-    hasRazorpayKeyId: Boolean(rzpKeyId),
-    hasRazorpayPlanId: Boolean(rzpPlanId),
-    jwtHasSub: Boolean(jwtPayload && (jwtPayload as any)?.sub),
-    jwtRole: jwtPayload ? String((jwtPayload as any)?.role || '') : ''
-  });
   if (!token) {
     return json({ error: 'Missing authorization token.' }, 401);
   }
@@ -86,7 +87,7 @@ serve(async (req) => {
 
   const { data: existing, error: existingErr } = await supabaseAdmin
     .from('user_billing')
-    .select('razorpay_customer_id, razorpay_subscription_id, subscription_status')
+    .select('trial_ends_at, razorpay_customer_id, razorpay_subscription_id, subscription_status')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -96,34 +97,69 @@ serve(async (req) => {
     return json({ error: 'Subscription already active.' }, 400);
   }
 
-  let customerId = existing?.razorpay_customer_id || null;
+  let customerId = (existing as any)?.razorpay_customer_id || null;
 
   if (!customerId) {
-    const custResp = await fetch('https://api.razorpay.com/v1/customers', {
+    const customerRes = await fetch('https://api.razorpay.com/v1/customers', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: basicAuth(rzpKeyId, rzpKeySecret)
       },
       body: JSON.stringify({
-        name: email ? email.split('@')[0] : 'Studo User',
-        email: email || undefined
+        name: email || userId,
+        notes: { user_id: userId, email }
       })
     });
 
-    const custJson = await custResp.json().catch(() => ({}));
-    if (!custResp.ok || !custJson?.id) {
-      return json({ error: custJson?.error?.description || 'Failed to create Razorpay customer.' }, 500);
+    if (!customerRes.ok) {
+      const errorText = await customerRes.text();
+      return json(
+        {
+          error: `Failed to create customer: ${customerRes.status} ${customerRes.statusText}`,
+          details: errorText
+        },
+        500
+      );
     }
 
-    customerId = String(custJson.id);
-
-    await supabaseAdmin
-      .from('user_billing')
-      .upsert({ user_id: userId, razorpay_customer_id: customerId }, { onConflict: 'user_id' });
+    const customer = await customerRes.json();
+    customerId = customer.id;
   }
 
-  const subResp = await fetch('https://api.razorpay.com/v1/subscriptions', {
+  const planCheck = await razorpayGet(`/v1/plans/${encodeURIComponent(rzpPlanId)}`, rzpKeyId, rzpKeySecret);
+  if (!planCheck.ok) {
+    return json(
+      {
+        error: 'Razorpay plan_id is not valid for these keys/mode.',
+        plan_id: rzpPlanId,
+        details: {
+          status: planCheck.status,
+          statusText: planCheck.statusText,
+          body: planCheck.text
+        }
+      },
+      500
+    );
+  }
+
+  const customerCheck = await razorpayGet(`/v1/customers/${encodeURIComponent(customerId)}`, rzpKeyId, rzpKeySecret);
+  if (!customerCheck.ok) {
+    return json(
+      {
+        error: 'Razorpay customer_id is not valid for these keys/mode.',
+        customer_id: customerId,
+        details: {
+          status: customerCheck.status,
+          statusText: customerCheck.statusText,
+          body: customerCheck.text
+        }
+      },
+      500
+    );
+  }
+
+  const subscriptionRes = await fetch('https://api.razorpay.com/v1/subscriptions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -132,33 +168,62 @@ serve(async (req) => {
     body: JSON.stringify({
       plan_id: rzpPlanId,
       customer_id: customerId,
-      total_count: 120,
-      quantity: 1,
-      customer_notify: 1
+      total_count: 12,
+      notes: { user_id: userId }
     })
   });
 
-  const subJson = await subResp.json().catch(() => ({}));
-  if (!subResp.ok || !subJson?.id) {
-    return json({ error: subJson?.error?.description || 'Failed to create Razorpay subscription.' }, 500);
+  if (!subscriptionRes.ok) {
+    const errorText = await subscriptionRes.text();
+    return json(
+      {
+        error: `Failed to create subscription: ${subscriptionRes.status} ${subscriptionRes.statusText}`,
+        details: errorText,
+        debug: { plan_id: rzpPlanId, customer_id: customerId }
+      },
+      500
+    );
   }
 
-  const subscriptionId = String(subJson.id);
+  const subscription = await subscriptionRes.json();
 
-  await supabaseAdmin
+  const nowIso = new Date().toISOString();
+  const trialEndsAt = (existing as any)?.trial_ends_at ? String((existing as any).trial_ends_at) : nowIso;
+  const currentPeriodEndIso =
+    typeof (subscription as any)?.current_end === 'number'
+      ? new Date((subscription as any).current_end * 1000).toISOString()
+      : null;
+
+  const { error: updateErr } = await supabaseAdmin
     .from('user_billing')
     .upsert(
       {
         user_id: userId,
-        subscription_status: 'created',
-        razorpay_subscription_id: subscriptionId
+        razorpay_customer_id: customerId,
+        razorpay_subscription_id: subscription.id,
+        subscription_status: String(subscription.status || 'created'),
+        trial_ends_at: trialEndsAt,
+        current_period_end: currentPeriodEndIso,
+        updated_at: nowIso
       },
       { onConflict: 'user_id' }
     );
 
+  if (updateErr) {
+    return json(
+      {
+        error: 'Failed to update billing record.',
+        details: updateErr.message
+      },
+      500
+    );
+  }
+
   return json({
     ok: true,
     keyId: rzpKeyId,
-    subscriptionId
+    subscriptionId: subscription.id,
+    subscription_id: subscription.id,
+    short_url: subscription.short_url
   });
 });
