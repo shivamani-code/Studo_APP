@@ -11,6 +11,8 @@ export interface AttendanceRecord {
   status: AttendanceStatus;
   remark?: string;
   proofUrl?: string;
+  proofName?: string;
+  leaveCounted?: boolean;
 }
 
 export interface Subject {
@@ -74,6 +76,8 @@ export interface AttendanceDay {
   status: AttendanceStatus;
   remark?: string;
   proofUrl?: string;
+  proofName?: string;
+  leaveCounted?: boolean;
 }
 
 // Queue items for focus section

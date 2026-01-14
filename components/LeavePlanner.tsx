@@ -77,17 +77,15 @@ const LeavePlanner: React.FC<Props> = ({ subjects }) => {
     return dt.toISOString().slice(0, 10);
   };
 
-  const computeBase = (days: any[], workingDaysToDate: number) => {
+  const computeBase = (days: any[]) => {
     const activeDays = days.filter((d) => Number(d?.totalClasses || 0) > 0);
     const loggedTotal = activeDays.reduce((acc, d) => acc + Number(d.totalClasses || 0), 0);
     const loggedAttended = activeDays.reduce((acc, d) => acc + Number(d.attendedClasses || 0), 0);
     const avg = activeDays.length > 0 ? loggedTotal / activeDays.length : classesPerLeaveDay;
-    const missingDays = Math.max(0, workingDaysToDate - activeDays.length);
-    const estimatedTotal = Math.round(loggedTotal + missingDays * avg);
-    const total = Math.max(0, Math.max(loggedTotal, estimatedTotal));
+    const total = Math.max(0, loggedTotal);
     const attended = Math.max(0, loggedAttended);
     const pct = total > 0 ? (attended / total) * 100 : 0;
-    return { total, attended, pct, avgClassesPerDay: avg };
+    return { total, attended, pct, avgClassesPerDay: avg, activeDayCount: activeDays.length };
   };
 
   const semStart = sem?.configured && sem.startDate ? String(sem.startDate).slice(0, 10) : '';
@@ -114,18 +112,21 @@ const LeavePlanner: React.FC<Props> = ({ subjects }) => {
     ? baselineDays.filter((d) => d.date >= periodStart && d.date <= toDateEnd)
     : [];
 
-  const workingDaysToDate = hasPeriod && periodStart <= toDateEnd
-    ? DataService.countWorkingDaysUTC(periodStart, toDateEnd)
-    : 0;
+  const workingDaysToDate = periodDaysToDate.length;
 
-  const base = computeBase(periodDaysToDate, workingDaysToDate);
+  const base = computeBase(periodDaysToDate);
   const baseTotal = base.total;
   const baseAttended = base.attended;
   const currentPercentage = base.pct;
-  const avgClassesPerWorkingDay = base.avgClassesPerDay;
+  const avgClassesPerWorkingDay = base.activeDayCount >= 5 ? base.avgClassesPerDay : classesPerLeaveDay;
+
+  const todayInPeriod = hasPeriod && todayIso >= periodStart && todayIso <= periodEnd;
+  const hasTodayMarked = todayInPeriod ? periodDaysToDate.some((d) => d.date === todayIso) : false;
 
   const futureStart = hasPeriod
-    ? (toDateEnd < periodStart ? periodStart : addDaysIso(toDateEnd, 1))
+    ? (toDateEnd < periodStart
+      ? periodStart
+      : (todayInPeriod && !hasTodayMarked ? todayIso : addDaysIso(toDateEnd, 1)))
     : '';
 
   const remainingWorkingDays = hasPeriod && futureStart && futureStart <= periodEnd
@@ -139,8 +140,8 @@ const LeavePlanner: React.FC<Props> = ({ subjects }) => {
       setPlannedLeaves(boundedPlannedLeaves);
     }
   }, [boundedPlannedLeaves]);
-  const projectedFutureClasses = remainingWorkingDays * avgClassesPerWorkingDay;
-  const projectedLeavesClasses = boundedPlannedLeaves * avgClassesPerWorkingDay;
+  const projectedFutureClasses = Math.max(0, Math.round(remainingWorkingDays * avgClassesPerWorkingDay));
+  const projectedLeavesClasses = Math.max(0, Math.round(boundedPlannedLeaves * avgClassesPerWorkingDay));
 
   const projectedTotal = baseTotal + projectedFutureClasses;
   const projectedAttended = baseAttended + Math.max(0, projectedFutureClasses - projectedLeavesClasses);

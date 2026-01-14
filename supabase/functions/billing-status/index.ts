@@ -114,7 +114,9 @@ serve(async (req) => {
   let row = data as BillingRow | null;
 
   if (!row) {
-    const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const createdAtMs = userData?.user?.created_at ? new Date(userData.user.created_at).getTime() : NaN;
+    const baseMs = Number.isFinite(createdAtMs) ? createdAtMs : Date.now();
+    const trialEndsAt = new Date(baseMs + 7 * 24 * 60 * 60 * 1000).toISOString();
     const { data: inserted, error: insertErr } = await supabaseAdmin
       .from('user_billing')
       .upsert(

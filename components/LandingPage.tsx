@@ -309,7 +309,7 @@ const LandingPage: React.FC = () => {
         </div>
       </div>
 
-      <nav className="fixed top-0 w-full z-50 px-10 py-8 flex justify-between items-center backdrop-blur-md border-b border-white/[0.03]">
+      <nav className="fixed top-0 w-full z-50 px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-8 flex justify-between items-center backdrop-blur-md border-b border-white/[0.03]">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center space-x-3">
           <div className="bg-[#d4af37] p-1.5 rounded shadow-[0_0_20px_rgba(212,175,55,0.4)]">
             <Zap className="text-black w-4 h-4" />
@@ -317,12 +317,12 @@ const LandingPage: React.FC = () => {
           <span className="text-xl font-black uppercase tracking-tighter text-white">Studo</span>
         </motion.div>
         
-        <div className="flex items-center space-x-12">
+        <div className="flex items-center gap-3 sm:gap-6">
             <div className="hidden md:flex items-center space-x-10 text-[10px] font-black uppercase tracking-[0.3em] text-[#666] mono">
                 <button onClick={scrollToContact} className="hover:text-[#d4af37] transition-colors">Contact</button>
             </div>
             <button onClick={() => setIsAuthOpen(true)} className="text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-colors">Sign In</button>
-            <MagneticButton onClick={() => setIsAuthOpen(true)} className="px-10 py-3 bg-[#d4af37] text-black rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl hover:bg-white hover:scale-105 transition-all">
+            <MagneticButton onClick={() => setIsAuthOpen(true)} className="px-4 sm:px-10 py-3 bg-[#d4af37] text-black rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl hover:bg-white hover:scale-105 transition-all">
                 Access System
             </MagneticButton>
         </div>

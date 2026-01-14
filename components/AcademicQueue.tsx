@@ -22,15 +22,12 @@ const AcademicQueue: React.FC = () => {
   });
 
   useEffect(() => {
-    // Load important dates from localStorage
-    const saved = localStorage.getItem('studo_important_dates');
-    if (saved) {
-      setImportantDates(JSON.parse(saved));
-    }
+    const saved = DataService.getImportantDates<ImportantDate[]>();
+    setImportantDates(Array.isArray(saved) ? saved : []);
   }, []);
 
   const saveImportantDates = (dates: ImportantDate[]) => {
-    localStorage.setItem('studo_important_dates', JSON.stringify(dates));
+    DataService.saveImportantDates(dates);
     setImportantDates(dates);
   };
 

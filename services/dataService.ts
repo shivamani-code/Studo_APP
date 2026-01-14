@@ -11,7 +11,10 @@ const STORAGE_KEYS = {
   TASKS: 'studo_tasks',
   COURSES: 'studo_courses',
   EXAMS: 'studo_exams',
-  CONTACT_SUBMISSIONS: 'studo_contact_submissions'
+  CONTACT_SUBMISSIONS: 'studo_contact_submissions',
+  FOCUS_SESSIONS: 'studo_focus_sessions',
+  HABIT_CHECKS: 'studo_habit_checks',
+  IMPORTANT_DATES: 'studo_important_dates'
 };
 
 const getActiveUserId = () => localStorage.getItem(ACTIVE_USER_KEY) || 'guest';
@@ -32,12 +35,22 @@ export class DataService {
     }
   }
 
+  private static safeParse<T>(raw: string | null, fallback: T): T {
+    try {
+      if (!raw) return fallback;
+      return JSON.parse(raw) as T;
+    } catch {
+      return fallback;
+    }
+  }
+
   static clampISODate(dateIso: string): string {
     return String(dateIso || '').slice(0, 10);
   }
 
   static getTodayISO(): string {
-    return new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   }
 
   static parseISODateUTC(dateIso: string): Date | null {
@@ -228,18 +241,39 @@ export class DataService {
 
   // Normal Attendance Days (new implementation)
   static getAttendanceDays(): AttendanceDay[] {
-    const data = getItem(STORAGE_KEYS.ATTENDANCE_DAYS);
-    return data ? JSON.parse(data) : [];
+    return this.safeParse<AttendanceDay[]>(getItem(STORAGE_KEYS.ATTENDANCE_DAYS), []);
   }
 
   static saveAttendanceDay(day: AttendanceDay): void {
+    const date = String(day?.date || '').slice(0, 10);
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    if (!date || date > today) return;
+
+    const totalClasses = Math.max(0, Number(day?.totalClasses ?? 1));
+    const status = day?.status;
+    const leaveCounted = Boolean(day?.leaveCounted);
+    const attendedClasses = status === AttendanceStatus.PRESENT
+      ? totalClasses
+      : status === AttendanceStatus.LEAVE
+        ? (leaveCounted ? totalClasses : 0)
+        : 0;
+
+    const normalized: AttendanceDay = {
+      ...day,
+      date,
+      totalClasses,
+      attendedClasses,
+      leaveCounted: status === AttendanceStatus.LEAVE ? leaveCounted : undefined
+    };
+
     const days = this.getAttendanceDays();
-    const existingIndex = days.findIndex(d => d.date === day.date);
+    const existingIndex = days.findIndex(d => d.date === date);
     
     if (existingIndex !== -1) {
-      days[existingIndex] = day;
+      days[existingIndex] = normalized;
     } else {
-      days.push(day);
+      days.push(normalized);
     }
     
     setItem(STORAGE_KEYS.ATTENDANCE_DAYS, JSON.stringify(days));
@@ -248,20 +282,23 @@ export class DataService {
   }
 
   static updateAttendanceDay(date: string, updates: Partial<AttendanceDay>): void {
+    const dateIso = String(date || '').slice(0, 10);
+    if (!dateIso) return;
+
     const days = this.getAttendanceDays();
-    const index = days.findIndex(d => d.date === date);
-    
-    if (index !== -1) {
-      days[index] = { ...days[index], ...updates };
-      setItem(STORAGE_KEYS.ATTENDANCE_DAYS, JSON.stringify(days));
-      window.dispatchEvent(new Event('studo_attendance_updated'));
-      this.dispatchDataUpdated();
-    }
+    const index = days.findIndex(d => d.date === dateIso);
+    if (index === -1) return;
+
+    const merged: AttendanceDay = { ...days[index], ...updates, date: dateIso };
+    this.saveAttendanceDay(merged);
   }
 
   static deleteAttendanceDay(date: string): void {
+    const dateIso = String(date || '').slice(0, 10);
+    if (!dateIso) return;
+
     const days = this.getAttendanceDays();
-    const filtered = days.filter(d => d.date !== date);
+    const filtered = days.filter(d => d.date !== dateIso);
     setItem(STORAGE_KEYS.ATTENDANCE_DAYS, JSON.stringify(filtered));
     window.dispatchEvent(new Event('studo_attendance_updated'));
     this.dispatchDataUpdated();
@@ -439,6 +476,41 @@ export class DataService {
     this.saveTasks(filtered);
   }
 
+  // Focus sessions (PersonalSpace)
+  static getFocusSessions<T = any[]>(): T {
+    return this.safeParse<T>(getItem(STORAGE_KEYS.FOCUS_SESSIONS), [] as any);
+  }
+
+  static saveFocusSessions(sessions: unknown): void {
+    setItem(STORAGE_KEYS.FOCUS_SESSIONS, JSON.stringify(sessions ?? []));
+    try {
+      window.dispatchEvent(new Event('studo_focus_updated'));
+    } catch {
+      // noop
+    }
+    this.dispatchDataUpdated();
+  }
+
+  // Habit checks (MonthlyHabitTracker)
+  static getHabitChecks<T = any[]>(): T {
+    return this.safeParse<T>(getItem(STORAGE_KEYS.HABIT_CHECKS), [] as any);
+  }
+
+  static saveHabitChecks(checks: unknown): void {
+    setItem(STORAGE_KEYS.HABIT_CHECKS, JSON.stringify(checks ?? []));
+    this.dispatchDataUpdated();
+  }
+
+  // Important dates (AcademicQueue)
+  static getImportantDates<T = any[]>(): T {
+    return this.safeParse<T>(getItem(STORAGE_KEYS.IMPORTANT_DATES), [] as any);
+  }
+
+  static saveImportantDates(dates: unknown): void {
+    setItem(STORAGE_KEYS.IMPORTANT_DATES, JSON.stringify(dates ?? []));
+    this.dispatchDataUpdated();
+  }
+
   // Courses
   static getCourses(): Course[] {
     const data = getItem(STORAGE_KEYS.COURSES);
@@ -569,12 +641,15 @@ export class DataService {
     const start = profile?.semesterStartDate;
     const end = profile?.semesterEndDate;
 
-    if (!start || !end) {
+    const startIso = this.clampISODate(String(start || ''));
+    const endIso = this.clampISODate(String(end || ''));
+
+    if (!startIso || !endIso || startIso.length !== 10 || endIso.length !== 10 || startIso > endIso) {
       const a = this.getAttendanceAnalytics();
       return {
         configured: false,
-        startDate: start || '',
-        endDate: end || '',
+        startDate: startIso || '',
+        endDate: endIso || '',
         totalClasses: a.totalClasses,
         totalAttended: a.totalAttended,
         percentage: a.overallPercentage,
@@ -582,25 +657,26 @@ export class DataService {
       };
     }
 
-    const a = this.getAttendanceAnalyticsForRange(start, end);
+    const a = this.getAttendanceAnalyticsForRange(startIso, endIso);
 
     const avgClassesPerDay = a.totalDays > 0 ? a.totalClasses / a.totalDays : 4;
     const safeLeavesByClasses = avgClassesPerDay > 0
       ? Math.floor((a.totalAttended / (targetPercentage / 100) - a.totalClasses) / avgClassesPerDay)
       : 0;
 
-    const today = new Date().toISOString().slice(0, 10);
-    const endIso = String(end).slice(0, 10);
-    const remainingCalendarDays = today <= endIso
-      ? Math.ceil((new Date(endIso).getTime() - new Date(today).getTime()) / (24 * 60 * 60 * 1000)) + 1
+    const today = this.getTodayISO();
+    const todayDt = this.parseISODateUTC(today);
+    const endDt = this.parseISODateUTC(endIso);
+    const remainingCalendarDays = todayDt && endDt && today <= endIso
+      ? Math.floor((endDt.getTime() - todayDt.getTime()) / (24 * 60 * 60 * 1000)) + 1
       : 0;
 
     const possibleLeaves = Math.max(0, Math.min(safeLeavesByClasses, remainingCalendarDays));
 
     return {
       configured: true,
-      startDate: String(start).slice(0, 10),
-      endDate: String(end).slice(0, 10),
+      startDate: startIso,
+      endDate: endIso,
       totalClasses: a.totalClasses,
       totalAttended: a.totalAttended,
       percentage: a.overallPercentage,
@@ -649,7 +725,10 @@ export class DataService {
       tasks: this.getTasks(),
       courses: this.getCourses(),
       exams: this.getExams(),
-      contactSubmissions: this.getContactSubmissions()
+      contactSubmissions: this.getContactSubmissions(),
+      focusSessions: this.getFocusSessions(),
+      habitChecks: this.getHabitChecks(),
+      importantDates: this.getImportantDates()
     };
     return JSON.stringify(data, null, 2);
   }
@@ -671,6 +750,15 @@ export class DataService {
       if (data.contactSubmissions) {
         setItem(STORAGE_KEYS.CONTACT_SUBMISSIONS, JSON.stringify(data.contactSubmissions));
       }
+      if (data.focusSessions) {
+        setItem(STORAGE_KEYS.FOCUS_SESSIONS, JSON.stringify(data.focusSessions));
+      }
+      if (data.habitChecks) {
+        setItem(STORAGE_KEYS.HABIT_CHECKS, JSON.stringify(data.habitChecks));
+      }
+      if (data.importantDates) {
+        setItem(STORAGE_KEYS.IMPORTANT_DATES, JSON.stringify(data.importantDates));
+      }
 
       if (data.attendanceDays) {
         try {
@@ -682,6 +770,13 @@ export class DataService {
       if (data.userProfile) {
         try {
           window.dispatchEvent(new Event('studo_profile_updated'));
+        } catch {
+          // noop
+        }
+      }
+      if (data.focusSessions) {
+        try {
+          window.dispatchEvent(new Event('studo_focus_updated'));
         } catch {
           // noop
         }

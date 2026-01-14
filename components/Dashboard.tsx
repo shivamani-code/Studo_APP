@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, Calendar, PieChart, LogOut, Bell, Menu, 
   ShieldAlert, BookOpen, Timer, RefreshCw, GraduationCap, User,
-  Download, Upload, Zap
+  Download, Upload, Zap, FileText
 } from 'lucide-react';
 import AttendanceHealth from './AttendanceHealth';
 import AttendanceCalendar from './AttendanceCalendar';
@@ -17,6 +17,7 @@ import CloudSync from './CloudSync';
 import AcademicQueue from './AcademicQueue';
 import TaskManager from './TaskManager';
 import Profile from './Profile';
+import AttendanceReports from './AttendanceReports';
 import { Subject, Course, Exam, UserProfile } from '../types';
 import { DataService } from '../services/dataService';
 import { BillingService } from '../services/billingService';
@@ -27,7 +28,14 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    try {
+      if (typeof window === 'undefined') return true;
+      return window.innerWidth >= 1024;
+    } catch {
+      return true;
+    }
+  });
 
   const NOTIF_ENABLED_KEY = 'studo_notifications_enabled';
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(() => {
@@ -243,6 +251,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const navItems = [
     { id: 'overview', label: 'CORE', icon: <LayoutDashboard size={18} /> },
     { id: 'attendance', label: 'CALENDAR', icon: <Calendar size={18} /> },
+    { id: 'reports', label: 'REPORTS', icon: <FileText size={18} /> },
     { id: 'analytics', label: 'ANALYTICS', icon: <PieChart size={18} /> },
     { id: 'planning', label: 'FORECAST', icon: <ShieldAlert size={18} /> },
     { id: 'personal', label: 'FOCUS', icon: <Timer size={18} /> },
@@ -301,6 +310,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
           </div>
         );
       case 'attendance': return <AttendanceCalendar />;
+      case 'reports': return <AttendanceReports />;
       case 'analytics': return <Analytics subjects={subjects} fullWidth />;
       case 'planning': return <LeavePlanner subjects={subjects} />;
       case 'personal': return <PersonalSpace courses={courses} exams={exams} />;
@@ -349,7 +359,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
 
         {/* User Profile */}
         <div className="p-4 lg:p-8 border-t border-white/[0.03] space-y-4 mt-auto">
-          <div className="flex items-center gap-4">
+          <button
+            onClick={() => setActiveTab('profile')}
+            className="flex items-center gap-4 w-full hover:bg-white/5 rounded-2xl transition-all p-2"
+            title="Open Profile"
+          >
             <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-2xl border border-[#d4af37]/20 overflow-hidden shadow-inner bg-gradient-to-br from-[#d4af37]/20 to-transparent flex items-center justify-center text-[#d4af37]">
                <User size={16} className="lg:size-20" />
             </div>
@@ -359,7 +373,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                 <p className="text-[10px] text-[#666] font-bold mono uppercase tracking-widest">{displayMeta}</p>
               </div>
             )}
-          </div>
+          </button>
           
           <button onClick={onLogout} className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-rose-500 hover:bg-rose-500/10 transition-all font-bold">
             <LogOut size={18} />
@@ -378,15 +392,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
 
       {/* Main content area */}
       <main className="flex-1 flex flex-col overflow-hidden relative lg:ml-0">
-        <header className="h-16 md:h-20 border-b border-white/[0.03] px-4 md:px-8 flex items-center justify-between z-10 bg-[#050505]/50 backdrop-blur-lg">
-          <div className="flex items-center gap-4 md:gap-6">
+        <header className="h-16 md:h-20 border-b border-white/[0.03] px-3 sm:px-4 md:px-8 flex items-center justify-between z-10 bg-[#050505]/50 backdrop-blur-lg">
+          <div className="flex items-center gap-3 sm:gap-4 md:gap-6 min-w-0">
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2.5 bg-white/[0.02] rounded-xl text-[#666] hover:text-[#d4af37] transition-all hover:bg-white/05">
               <Menu size={20} />
             </button>
-            <h2 className="serif-luxury text-lg md:text-xl tracking-tighter text-white uppercase">{activeTab}</h2>
+            <h2 className="serif-luxury text-lg md:text-xl tracking-tighter text-white uppercase truncate max-w-[40vw] sm:max-w-none">{activeTab}</h2>
           </div>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 sm:gap-6 shrink-0">
             <button
               type="button"
               onClick={toggleNotifications}
@@ -406,7 +420,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                 type="button"
                 onClick={startSubscription}
                 disabled={subscribing}
-                className="flex items-center px-4 py-2 bg-[#d4af37]/10 border border-[#d4af37]/20 rounded-xl text-[10px] font-black uppercase mono text-[#d4af37] tracking-widest"
+                className="flex items-center px-3 sm:px-4 py-2 bg-[#d4af37]/10 border border-[#d4af37]/20 rounded-xl text-[10px] font-black uppercase mono text-[#d4af37] tracking-widest whitespace-nowrap"
                 title="Subscribe ₹59/month"
               >
                 {subscribing ? 'PROCESSING' : 'UPGRADE'}
@@ -428,9 +442,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 scroll-smooth">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 scroll-smooth">
           {!billingLoading && billingAccessAllowed && trialHoursLeft !== null && (
-            <div className="mb-4 bg-white/[0.03] border border-white/[0.05] rounded-2xl px-5 py-3 flex items-center justify-between gap-4">
+            <div className="mb-4 bg-white/[0.03] border border-white/[0.05] rounded-2xl px-5 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest mono text-[#d4af37]">TRIAL_ACTIVE</p>
                 <p className="mt-1 text-[10px] font-bold mono uppercase tracking-widest text-[#777] opacity-80">{trialHoursLeft} hours left</p>
@@ -440,7 +454,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
                   type="button"
                   onClick={startSubscription}
                   disabled={subscribing}
-                  className="px-4 py-2 bg-[#d4af37]/10 border border-[#d4af37]/20 rounded-xl text-[10px] font-black uppercase mono text-[#d4af37] tracking-widest disabled:opacity-60"
+                  className="px-4 py-2 bg-[#d4af37]/10 border border-[#d4af37]/20 rounded-xl text-[10px] font-black uppercase mono text-[#d4af37] tracking-widest disabled:opacity-60 w-full sm:w-auto"
                   title="Subscribe ₹59/month"
                 >
                   {subscribing ? 'PROCESSING' : 'UPGRADE'}

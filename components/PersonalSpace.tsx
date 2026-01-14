@@ -31,10 +31,8 @@ const PersonalSpace: React.FC<Props> = ({ courses, exams }) => {
   });
 
   useEffect(() => {
-    const savedSessions = localStorage.getItem('studo_focus_sessions');
-    if (savedSessions) {
-      setSessions(JSON.parse(savedSessions));
-    }
+    const savedSessions = DataService.getFocusSessions<FocusSession[]>();
+    setSessions(Array.isArray(savedSessions) ? savedSessions : []);
     
     // Load queue items
     const items = DataService.getQueueItems();
@@ -43,6 +41,7 @@ const PersonalSpace: React.FC<Props> = ({ courses, exams }) => {
 
   const sessionTimeRef = useRef(sessionTime);
   const timeLeftRef = useRef(timeLeft);
+  const segmentStartRemainingRef = useRef(sessionTime);
   useEffect(() => {
     sessionTimeRef.current = sessionTime;
   }, [sessionTime]);
@@ -95,7 +94,7 @@ const PersonalSpace: React.FC<Props> = ({ courses, exams }) => {
   };
 
   const persistSession = (completed: boolean) => {
-    const duration = sessionTimeRef.current - timeLeftRef.current;
+    const duration = segmentStartRemainingRef.current - timeLeftRef.current;
     if (!Number.isFinite(duration) || duration <= 0) return;
 
     const newSession: FocusSession = {
@@ -107,32 +106,42 @@ const PersonalSpace: React.FC<Props> = ({ courses, exams }) => {
 
     setSessions((prev) => {
       const next = [newSession, ...prev].slice(0, 500);
-      localStorage.setItem('studo_focus_sessions', JSON.stringify(next));
-      window.dispatchEvent(new Event('studo_focus_updated'));
+      DataService.saveFocusSessions(next);
       return next;
     });
+
+    segmentStartRemainingRef.current = timeLeftRef.current;
   };
 
   const completeSession = () => {
     persistSession(true);
     setActiveSession(false);
     setTimeLeft(sessionTime);
+    segmentStartRemainingRef.current = sessionTimeRef.current;
   };
 
   const toggleTimer = () => {
-    setActiveSession(!activeSession);
+    setActiveSession((prev) => {
+      if (prev) {
+        persistSession(false);
+        return false;
+      }
+      segmentStartRemainingRef.current = timeLeftRef.current;
+      return true;
+    });
   };
 
   const resetTimer = () => {
-    if (timeLeftRef.current !== sessionTimeRef.current) {
+    if (segmentStartRemainingRef.current !== timeLeftRef.current) {
       persistSession(false);
     }
     setActiveSession(false);
     setTimeLeft(sessionTime);
+    segmentStartRemainingRef.current = sessionTimeRef.current;
   };
 
   const changeMode = (newMode: 'focus' | 'short' | 'long') => {
-    if (timeLeftRef.current !== sessionTimeRef.current) {
+    if (segmentStartRemainingRef.current !== timeLeftRef.current) {
       persistSession(false);
     }
     setMode(newMode);
@@ -140,11 +149,12 @@ const PersonalSpace: React.FC<Props> = ({ courses, exams }) => {
     const newTime = newMode === 'focus' ? 25 * 60 : newMode === 'short' ? 5 * 60 : 15 * 60;
     setSessionTime(newTime);
     setTimeLeft(newTime);
+    segmentStartRemainingRef.current = newTime;
   };
 
   useEffect(() => {
     return () => {
-      if (timeLeftRef.current !== sessionTimeRef.current) {
+      if (segmentStartRemainingRef.current !== timeLeftRef.current) {
         persistSession(false);
       }
     };

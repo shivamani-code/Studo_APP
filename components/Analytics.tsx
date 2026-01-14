@@ -40,25 +40,22 @@ const Analytics: React.FC<Props> = ({ subjects, fullWidth = false }) => {
     const profile = DataService.getUserProfile();
     const start = profile?.semesterStartDate;
     const end = profile?.semesterEndDate;
-    const ranged = start && end;
+    const startIso = start ? DataService.clampISODate(String(start)) : '';
+    const endIso = end ? DataService.clampISODate(String(end)) : '';
+    const ranged = Boolean(startIso && endIso && startIso <= endIso);
 
-    setSemesterStart(start);
-    setSemesterEnd(end);
+    setSemesterStart(ranged ? startIso : undefined);
+    setSemesterEnd(ranged ? endIso : undefined);
 
-    setAttendanceAnalytics(ranged ? DataService.getAttendanceAnalyticsForRange(start, end) : DataService.getAttendanceAnalytics());
-    setAttendanceDays(ranged ? DataService.getAttendanceDaysInRange(start, end) : DataService.getAttendanceDays());
+    setAttendanceAnalytics(ranged ? DataService.getAttendanceAnalyticsForRange(startIso, endIso) : DataService.getAttendanceAnalytics());
+    setAttendanceDays(ranged ? DataService.getAttendanceDaysInRange(startIso, endIso) : DataService.getAttendanceDays());
     setTasks(DataService.getTasks());
     setHabits(DataService.getHabits());
     setQueueItems(DataService.getQueueItems());
     setCourses(DataService.getCourses());
     setExams(DataService.getExams());
 
-    try {
-      const raw = localStorage.getItem('studo_focus_sessions');
-      setFocusSessions(raw ? JSON.parse(raw) : []);
-    } catch {
-      setFocusSessions([]);
-    }
+    setFocusSessions(DataService.getFocusSessions());
   };
 
   useEffect(() => {
@@ -347,8 +344,8 @@ const Analytics: React.FC<Props> = ({ subjects, fullWidth = false }) => {
   }, [overallAttendance.percentage]);
 
   const computeRangeForecast = (rangeStart: string, rangeEnd: string, targetPct: number) => {
-    const start = String(rangeStart || '').slice(0, 10);
-    const end = String(rangeEnd || '').slice(0, 10);
+    const start = DataService.clampISODate(String(rangeStart || ''));
+    const end = DataService.clampISODate(String(rangeEnd || ''));
     if (!start || !end || start > end) {
       return { percentage: 0, gap: targetPct, recoverDays: 0, remainingDays: 0 };
     }
@@ -365,13 +362,11 @@ const Analytics: React.FC<Props> = ({ subjects, fullWidth = false }) => {
     const loggedTotal = activeDays.reduce((acc, d) => acc + safeNumber((d as any)?.totalClasses, 0), 0);
     const loggedAttended = activeDays.reduce((acc, d) => acc + safeNumber((d as any)?.attendedClasses, 0), 0);
 
-    const workingDaysToDate = DataService.countWorkingDaysUTC(start, toDateEnd);
-    const avg = activeDays.length > 0 ? loggedTotal / activeDays.length : 4;
-    const missingDays = Math.max(0, workingDaysToDate - activeDays.length);
-    const estimatedTotal = Math.round(loggedTotal + missingDays * avg);
-    const total = Math.max(0, Math.max(loggedTotal, estimatedTotal));
+    const total = Math.max(0, loggedTotal);
     const attended = Math.max(0, loggedAttended);
     const percentage = total > 0 ? (attended / total) * 100 : 0;
+
+    const avg = activeDays.length > 0 ? total / activeDays.length : 4;
 
     const p = targetPct / 100;
     const neededClasses = percentage >= targetPct || p >= 1
@@ -379,11 +374,14 @@ const Analytics: React.FC<Props> = ({ subjects, fullWidth = false }) => {
       : Math.ceil(Math.max(0, (p * total - attended) / (1 - p)));
     const recoverDays = avg > 0 ? Math.ceil(neededClasses / avg) : 0;
 
-    const tomorrow = DataService.parseISODateUTC(toDateEnd);
-    const futureStart = tomorrow ? (() => {
-      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-      return tomorrow.toISOString().slice(0, 10);
+    const todayInRange = todayIso >= start && todayIso <= end;
+    const hasTodayMarked = todayInRange ? activeDays.some((d: any) => String(d?.date || '').slice(0, 10) === todayIso) : false;
+    const base = DataService.parseISODateUTC(toDateEnd);
+    const nextDay = base ? (() => {
+      base.setUTCDate(base.getUTCDate() + 1);
+      return base.toISOString().slice(0, 10);
     })() : toDateEnd;
+    const futureStart = todayInRange && !hasTodayMarked ? todayIso : nextDay;
     const remainingDays = futureStart <= end ? DataService.countWorkingDaysUTC(futureStart, end) : 0;
 
     return {
@@ -404,7 +402,8 @@ const Analytics: React.FC<Props> = ({ subjects, fullWidth = false }) => {
     const monthKey = DataService.getMonthKeyFromISO(todayIso);
     const range = DataService.getMonthRangeFromMonthKey(monthKey);
     if (!range) return null;
-    const end = semesterEnd && semesterEnd < range.end ? semesterEnd : range.end;
+    const semEnd = semesterEnd ? DataService.clampISODate(semesterEnd) : '';
+    const end = semEnd && semEnd < range.end ? semEnd : range.end;
     return computeRangeForecast(range.start, end, 75);
   }, [semesterEnd, attendanceDays]);
 

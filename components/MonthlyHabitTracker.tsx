@@ -23,14 +23,12 @@ const MonthlyHabitTracker: React.FC = () => {
   }, [currentDate]);
 
   const loadHabitChecks = () => {
-    const saved = localStorage.getItem('studo_habit_checks');
-    if (saved) {
-      setHabitChecks(JSON.parse(saved));
-    }
+    const saved = DataService.getHabitChecks<HabitCheck[]>();
+    setHabitChecks(Array.isArray(saved) ? saved : []);
   };
 
   const saveHabitChecks = (checks: HabitCheck[]) => {
-    localStorage.setItem('studo_habit_checks', JSON.stringify(checks));
+    DataService.saveHabitChecks(checks);
     setHabitChecks(checks);
   };
 

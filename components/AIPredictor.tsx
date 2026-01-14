@@ -48,7 +48,7 @@ const AIPredictor: React.FC<Props> = ({ subjects }) => {
       ? DataService.getAttendanceDaysInRange(range.startDate, range.endDate)
       : DataService.getAttendanceDays();
 
-    const workingDays = range ? DataService.countWorkingDaysUTC(range.startDate, range.endDate) : days.length;
+    const workingDays = days.length;
     const computed = computeToDate(days, workingDays);
     const percentage = Math.round(computed.percentage * 10) / 10;
 
@@ -111,7 +111,7 @@ const AIPredictor: React.FC<Props> = ({ subjects }) => {
           ? DataService.getAttendanceDaysInRange(startIso, toDateEndIso)
           : DataService.getAttendanceDays();
 
-        const workingDays = startIso ? DataService.countWorkingDaysUTC(startIso, toDateEndIso) : semToDateDays.length;
+        const workingDays = semToDateDays.length;
         const computed = computeToDate(semToDateDays, workingDays);
         setSemToDate({
           workingDays: computed.workingDays,
