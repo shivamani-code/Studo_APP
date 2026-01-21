@@ -18,6 +18,12 @@ root.render(
   </React.StrictMode>
 );
 
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}service-worker.js`);
+  });
+}
+
 // Smooth splash progress (matches pre-app loading reference)
 const splash = document.getElementById('studo-splash');
 const percentEl = document.getElementById('studo-splash-percent');

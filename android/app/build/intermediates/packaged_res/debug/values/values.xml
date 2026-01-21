@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <bool name="use_local_assets">false</bool>
+    <string name="app_name">Studo</string>
+    <string name="web_app_url">https://studo.app</string>
+    <style name="Theme.Studo" parent="Theme.AppCompat.Light.NoActionBar"/>
+</resources>

@@ -1,0 +1,93 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.studo.webview"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="23"
+9        android:targetSdkVersion="34" />
+10
+11    <uses-permission android:name="android.permission.INTERNET" />
+11-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:4:3-65
+11-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:4:20-62
+12    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+12-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:5:3-77
+12-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:5:20-74
+13
+14    <permission
+14-->[androidx.core:core:1.12.0] C:\Users\shiva\.gradle\caches\9.0-milestone-1\transforms\5f2aa0165b2ab0df5ca7c40d78259b54\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
+15        android:name="com.studo.webview.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+15-->[androidx.core:core:1.12.0] C:\Users\shiva\.gradle\caches\9.0-milestone-1\transforms\5f2aa0165b2ab0df5ca7c40d78259b54\transformed\core-1.12.0\AndroidManifest.xml:23:9-81
+16        android:protectionLevel="signature" />
+16-->[androidx.core:core:1.12.0] C:\Users\shiva\.gradle\caches\9.0-milestone-1\transforms\5f2aa0165b2ab0df5ca7c40d78259b54\transformed\core-1.12.0\AndroidManifest.xml:24:9-44
+17
+18    <uses-permission android:name="com.studo.webview.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+18-->[androidx.core:core:1.12.0] C:\Users\shiva\.gradle\caches\9.0-milestone-1\transforms\5f2aa0165b2ab0df5ca7c40d78259b54\transformed\core-1.12.0\AndroidManifest.xml:26:5-97
+18-->[androidx.core:core:1.12.0] C:\Users\shiva\.gradle\caches\9.0-milestone-1\transforms\5f2aa0165b2ab0df5ca7c40d78259b54\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
+19
+20    <application
+20-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:7:3-26:17
+21        android:allowBackup="true"
+21-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:8:5-31
+22        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+22-->[androidx.core:core:1.12.0] C:\Users\shiva\.gradle\caches\9.0-milestone-1\transforms\5f2aa0165b2ab0df5ca7c40d78259b54\transformed\core-1.12.0\AndroidManifest.xml:28:18-86
+23        android:debuggable="true"
+24        android:extractNativeLibs="false"
+25        android:icon="@android:drawable/sym_def_app_icon"
+25-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:10:5-54
+26        android:label="@string/app_name"
+26-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:9:5-37
+27        android:networkSecurityConfig="@xml/network_security_config"
+27-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:14:5-65
+28        android:roundIcon="@android:drawable/sym_def_app_icon"
+28-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:11:5-59
+29        android:testOnly="true"
+30        android:theme="@style/Theme.Studo"
+30-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:12:5-39
+31        android:usesCleartextTraffic="true" >
+31-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:13:5-40
+32        <activity
+32-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:16:5-24:16
+33            android:name="com.studo.webview.MainActivity"
+33-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:17:7-35
+34            android:exported="true"
+34-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:18:7-30
+35            android:launchMode="singleTask" >
+35-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:19:7-38
+36            <intent-filter>
+36-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:20:7-23:23
+37                <action android:name="android.intent.action.MAIN" />
+37-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:21:9-61
+37-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:21:17-58
+38
+39                <category android:name="android.intent.category.LAUNCHER" />
+39-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:22:9-69
+39-->D:\stup-studo\studo---next-gen-student-life-&-attendance\android\app\src\main\AndroidManifest.xml:22:19-66
+40            </intent-filter>
+41        </activity>
+42
+43        <provider
+43-->[androidx.emoji2:emoji2:1.2.0] C:\Users\shiva\.gradle\caches\9.0-milestone-1\transforms\ece5f7bca034abcf8ec469d6d9190e3a\transformed\emoji2-1.2.0\AndroidManifest.xml:24:9-32:20
+44            android:name="androidx.startup.InitializationProvider"
+44-->[androidx.emoji2:emoji2:1.2.0] C:\Users\shiva\.gradle\caches\9.0-milestone-1\transforms\ece5f7bca034abcf8ec469d6d9190e3a\transformed\emoji2-1.2.0\AndroidManifest.xml:25:13-67
+45            android:authorities="com.studo.webview.androidx-startup"
+45-->[androidx.emoji2:emoji2:1.2.0] C:\Users\shiva\.gradle\caches\9.0-milestone-1\transforms\ece5f7bca034abcf8ec469d6d9190e3a\transformed\emoji2-1.2.0\AndroidManifest.xml:26:13-68
+46            android:exported="false" >
+46-->[androidx.emoji2:emoji2:1.2.0] C:\Users\shiva\.gradle\caches\9.0-milestone-1\transforms\ece5f7bca034abcf8ec469d6d9190e3a\transformed\emoji2-1.2.0\AndroidManifest.xml:27:13-37
+47            <meta-data
+47-->[androidx.emoji2:emoji2:1.2.0] C:\Users\shiva\.gradle\caches\9.0-milestone-1\transforms\ece5f7bca034abcf8ec469d6d9190e3a\transformed\emoji2-1.2.0\AndroidManifest.xml:29:13-31:52
+48                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+48-->[androidx.emoji2:emoji2:1.2.0] C:\Users\shiva\.gradle\caches\9.0-milestone-1\transforms\ece5f7bca034abcf8ec469d6d9190e3a\transformed\emoji2-1.2.0\AndroidManifest.xml:30:17-75
+49                android:value="androidx.startup" />
+49-->[androidx.emoji2:emoji2:1.2.0] C:\Users\shiva\.gradle\caches\9.0-milestone-1\transforms\ece5f7bca034abcf8ec469d6d9190e3a\transformed\emoji2-1.2.0\AndroidManifest.xml:31:17-49
+50            <meta-data
+50-->[androidx.lifecycle:lifecycle-process:2.4.1] C:\Users\shiva\.gradle\caches\9.0-milestone-1\transforms\1f5bea96fdd06b45f1a65182d226a562\transformed\lifecycle-process-2.4.1\AndroidManifest.xml:31:13-33:52
+51                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+51-->[androidx.lifecycle:lifecycle-process:2.4.1] C:\Users\shiva\.gradle\caches\9.0-milestone-1\transforms\1f5bea96fdd06b45f1a65182d226a562\transformed\lifecycle-process-2.4.1\AndroidManifest.xml:32:17-78
+52                android:value="androidx.startup" />
+52-->[androidx.lifecycle:lifecycle-process:2.4.1] C:\Users\shiva\.gradle\caches\9.0-milestone-1\transforms\1f5bea96fdd06b45f1a65182d226a562\transformed\lifecycle-process-2.4.1\AndroidManifest.xml:33:17-49
+53        </provider>
+54    </application>
+55
+56</manifest>
